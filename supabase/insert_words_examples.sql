@@ -1,0 +1,51 @@
+-- ============================================================
+-- SQL Editor で単語・例文を追加するテンプレート
+-- コピーして値を書き換え、Supabase SQL Editor で Run
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- 1. 新しい語根グループを追加
+-- ------------------------------------------------------------
+-- insert into word_groups (root, meaning, sort_order) values
+--   ('port', '運ぶ (carry)', 4);
+
+-- ------------------------------------------------------------
+-- 2. 単語を追加（group_id は語根の root で指定できる）
+-- ------------------------------------------------------------
+-- 例: root が 'port' のグループに単語を追加
+-- insert into words (group_id, en, jp, note, sort_order)
+-- select id, 'export', '輸出する、エクスポート', '外に運ぶ', 1 from word_groups where root = 'port' limit 1;
+--
+-- insert into words (group_id, en, jp, note, sort_order)
+-- select id, 'import', '輸入する、インポート', '中に運ぶ', 2 from word_groups where root = 'port' limit 1;
+
+-- ------------------------------------------------------------
+-- 3. 単語に例文を追加（既存の単語を en で指定して更新）
+-- ------------------------------------------------------------
+-- 例: "cursor" に例文を追加
+-- update words set
+--   example_sentence_en = 'Move the cursor to the end of the line.',
+--   example_sentence_jp = 'カーソルを行末に移動する。'
+-- where en = 'cursor';
+--
+-- 例: "current" に例文を追加
+-- update words set
+--   example_sentence_en = 'The current version supports dark mode.',
+--   example_sentence_jp = '現在のバージョンはダークモードに対応している。'
+-- where en = 'current';
+
+-- ------------------------------------------------------------
+-- 4. 一括で単語＋例文を追加（1グループ分の例）
+-- ------------------------------------------------------------
+-- まずグループを追加してから、以下で単語を一括投入
+-- insert into word_groups (root, meaning, sort_order) values ('port', '運ぶ (carry)', 4);
+--
+-- insert into words (group_id, en, jp, note, example_sentence_en, example_sentence_jp, sort_order)
+-- select g.id, v.en, v.jp, v.note, v.ex_en, v.ex_jp, v.sort_order
+-- from word_groups g
+-- cross join lateral (values
+--   ('export', '輸出する、エクスポート', '外に運ぶ', 'Export the project as a zip file.', 'プロジェクトを zip でエクスポートする。', 1),
+--   ('import', '輸入する、インポート', '中に運ぶ', 'Import the module at the top.', 'モジュールを先頭でインポートする。', 2),
+--   ('port', 'ポート、移植する', '運ぶ', 'The app runs on port 3000.', 'アプリはポート 3000 で動く。', 3)
+-- ) as v(en, jp, note, ex_en, ex_jp, sort_order)
+-- where g.root = 'port';

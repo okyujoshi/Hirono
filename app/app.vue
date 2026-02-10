@@ -1,337 +1,352 @@
 <script setup lang="ts">
-// 語根ごとの英単語（日本語補足付き）- プログラマ向け
-const wordGroups = [
-  {
-    root: 'cur / curs',
-    meaning: '走る、流れる (run, flow)',
-    words: [
-      { en: 'cursor', jp: 'カーソル（画面上の位置を示す印）', note: '流れていくもの → 現在位置' },
-      { en: 'current', jp: '現在の、電流、流れ', note: '今流れているもの' },
-      { en: 'occur', jp: '起こる、発生する', note: '流れ向かう → 何かが起きる' },
-      { en: 'recur', jp: '再発する、繰り返す', note: '再び流れる' },
-      { en: 'concurrent', jp: '同時の、並行の', note: '一緒に流れる → 並行処理' }
-    ]
-  },
-  {
-    root: 'put',
-    meaning: '考える (think)',
-    words: [
-      { en: 'compute', jp: '計算する', note: '共に考える → 計算' },
-      { en: 'computer', jp: 'コンピュータ', note: '計算する機械' },
-      { en: 'reputation', jp: '評判、名声', note: '繰り返し考えられること' }
-    ]
-  },
-  {
-    root: 'script',
-    meaning: '書く (write)',
-    words: [
-      { en: 'script', jp: 'スクリプト、台本', note: '書かれたもの' },
-      { en: 'description', jp: '記述、説明', note: '下に書く → 描写' },
-      { en: 'prescription', jp: '処方、指示', note: '前に書く → 処方箋' }
-    ]
-  }
-]
+const user = useSupabaseUser()
+const supabase = useSupabaseClient()
 
-// True/False クイズ
-const quizQuestions = [
-  { id: 1, statement: '"Cursor" と "current" は同じ語根（cur）に由来する。', correct: true },
-  { id: 2, statement: '"Occur" は「流れに向かう」が語源で、「起こる」の意味になる。', correct: true },
-  { id: 3, statement: '"Concurrent" は「同時・並行」を意味し、プログラミングでよく使う。', correct: true },
-  { id: 4, statement: '"Compute" の語根 "put" は「置く」という意味である。', correct: false },
-  { id: 5, statement: '"Script" と "description" はどちらも「書く」を意味する語根を持つ。', correct: true }
-]
+const authOpen = ref(false)
+const authMode = ref<'login' | 'signup'>('login')
+const authEmail = ref('')
+const authPassword = ref('')
+const authMessage = ref('')
+const authLoading = ref(false)
 
-const currentQuestionIndex = ref(0)
-const userAnswer = ref<boolean | null>(null)
-const showResult = ref(false)
-const score = ref(0)
-const quizFinished = ref(false)
-
-const currentQuestion = computed(() => quizQuestions[currentQuestionIndex.value])
-const totalQuestions = quizQuestions.length
-
-function submitAnswer(answer: boolean) {
-  userAnswer.value = answer
-  showResult.value = true
-  if (answer === currentQuestion.value.correct) {
-    score.value += 1
+async function handleAuth () {
+  authMessage.value = ''
+  authLoading.value = true
+  try {
+    if (authMode.value === 'login') {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: authEmail.value,
+        password: authPassword.value
+      })
+      if (error) throw error
+      authOpen.value = false
+      authEmail.value = ''
+      authPassword.value = ''
+    } else {
+      const { error } = await supabase.auth.signUp({
+        email: authEmail.value,
+        password: authPassword.value
+      })
+      if (error) throw error
+      authMessage.value = '確認メールを送りました。メール内のリンクで有効化してください。'
+    }
+  } catch (e: unknown) {
+    authMessage.value = (e as { message?: string })?.message ?? 'エラーが発生しました'
+  } finally {
+    authLoading.value = false
   }
 }
 
-function nextQuestion() {
-  userAnswer.value = null
-  showResult.value = false
-  if (currentQuestionIndex.value < totalQuestions - 1) {
-    currentQuestionIndex.value += 1
-  } else {
-    quizFinished.value = true
-  }
+async function signOut () {
+  await supabase.auth.signOut()
+  authOpen.value = false
 }
 
-function resetQuiz() {
-  currentQuestionIndex.value = 0
-  userAnswer.value = null
-  showResult.value = false
-  score.value = 0
-  quizFinished.value = false
+function openAuth (mode: 'login' | 'signup') {
+  authMode.value = mode
+  authOpen.value = true
 }
+provide('openAuth', openAuth)
 </script>
 
 <template>
-  <div class="landing">
-    <header class="hero">
-      <h1>English for Japanese Programmers</h1>
-      <p class="tagline">語根で覚える英単語 — カーソルから広がる語彙</p>
+  <div class="layout">
+    <header class="site-header">
+      <div class="header-inner">
+        <NuxtLink to="/" class="logo">
+          <span class="logo-text">English for Programmers</span>
+        </NuxtLink>
+        <nav class="nav">
+          <NuxtLink to="/" class="nav-link">トップ</NuxtLink>
+          <NuxtLink to="/learn" class="nav-link">学習</NuxtLink>
+          <NuxtLink to="/ranking" class="nav-link">ランキング</NuxtLink>
+        </nav>
+        <div class="auth-area">
+          <template v-if="user">
+            <span class="user-email">{{ user.email }}</span>
+            <button type="button" class="btn-header btn-outline" @click="signOut">
+              ログアウト
+            </button>
+          </template>
+          <template v-else>
+            <button type="button" class="btn-header btn-primary" @click="authOpen = true">
+              ログイン
+            </button>
+          </template>
+        </div>
+      </div>
+      <!-- ログイン/新規登録モーダル -->
+      <Teleport to="body">
+        <div v-if="authOpen" class="auth-overlay" @click.self="authOpen = false">
+          <div class="auth-card">
+            <div class="auth-card-header">
+              <h2>{{ authMode === 'login' ? 'ログイン' : '新規登録' }}</h2>
+              <button type="button" class="auth-close" aria-label="閉じる" @click="authOpen = false">×</button>
+            </div>
+            <form class="auth-form" @submit.prevent="handleAuth">
+              <input
+                v-model="authEmail"
+                type="email"
+                placeholder="メールアドレス"
+                required
+                class="auth-input"
+              />
+              <input
+                v-model="authPassword"
+                type="password"
+                placeholder="パスワード（6文字以上）"
+                required
+                minlength="6"
+                class="auth-input"
+              />
+              <p v-if="authMessage" class="auth-message">{{ authMessage }}</p>
+              <button type="submit" class="btn-auth" :disabled="authLoading">
+                {{ authLoading ? '送信中…' : (authMode === 'login' ? 'ログイン' : '登録') }}
+              </button>
+            </form>
+            <p class="auth-switch">
+              <button type="button" class="link-btn" @click="authMode = authMode === 'login' ? 'signup' : 'login'; authMessage = ''">
+                {{ authMode === 'login' ? 'アカウントを作成' : 'ログインに戻る' }}
+              </button>
+            </p>
+          </div>
+        </div>
+      </Teleport>
     </header>
 
-    <main class="content">
-      <!-- 語根・単語一覧（v-for） -->
-      <section class="vocabulary">
-        <h2>語根で広げる単語</h2>
-        <p class="section-desc">一つの語根から関連語をまとめて覚えましょう。</p>
-
-        <div
-          v-for="(group, gIndex) in wordGroups"
-          :key="gIndex"
-          class="word-group"
-        >
-          <h3 class="root-title">{{ group.root }} — {{ group.meaning }}</h3>
-          <ul class="word-list">
-            <li
-              v-for="(word, wIndex) in group.words"
-              :key="wIndex"
-              class="word-item"
-            >
-              <strong>{{ word.en }}</strong>
-              <span class="jp">（{{ word.jp }}）</span>
-              <span v-if="word.note" class="note">— {{ word.note }}</span>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <!-- True/False クイズ -->
-      <section class="quiz">
-        <h2>True / False クイズ</h2>
-        <p class="section-desc">理解度を確認しましょう。</p>
-
-        <div v-if="!quizFinished" class="quiz-box">
-          <p class="question-number">
-            問題 {{ currentQuestionIndex + 1 }} / {{ totalQuestions }}
-          </p>
-          <p class="question-statement">{{ currentQuestion.statement }}</p>
-
-          <!-- 未回答時はボタン、回答後は結果（v-if / v-else） -->
-          <div v-if="!showResult" class="buttons">
-            <button type="button" class="btn btn-true" @click="submitAnswer(true)">
-              True
-            </button>
-            <button type="button" class="btn btn-false" @click="submitAnswer(false)">
-              False
-            </button>
-          </div>
-          <div v-else class="result">
-            <p
-              v-if="userAnswer === currentQuestion.correct"
-              class="feedback correct"
-            >
-              ✓ 正解です！
-            </p>
-            <p v-else class="feedback incorrect">
-              ✗ 不正解。正解は {{ currentQuestion.correct ? 'True' : 'False' }} です。
-            </p>
-            <button type="button" class="btn btn-next" @click="nextQuestion">
-              {{ currentQuestionIndex < totalQuestions - 1 ? '次の問題' : '結果を見る' }}
-            </button>
-          </div>
-        </div>
-
-        <div v-else class="quiz-finished">
-          <h3>クイズ結果</h3>
-          <p class="score">{{ score }} / {{ totalQuestions }} 問正解</p>
-          <button type="button" class="btn btn-retry" @click="resetQuiz">
-            もう一度挑戦
-          </button>
-        </div>
-      </section>
+    <main class="main">
+      <NuxtPage />
     </main>
 
-    <footer class="footer">
-      <p>Vue + Nuxt + Supabase — 日本人プログラマのための英単語</p>
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <NuxtLink to="/" class="footer-logo">English for Japanese Programmers</NuxtLink>
+        <p class="footer-tagline">語根で覚える英単語 — Vue + Nuxt + Supabase</p>
+        <div class="footer-links">
+          <NuxtLink to="/">トップ</NuxtLink>
+          <NuxtLink to="/learn">学習</NuxtLink>
+          <NuxtLink to="/ranking">ランキング</NuxtLink>
+        </div>
+        <p class="footer-copy">© 2025 — 日本人プログラマのための英単語</p>
+      </div>
     </footer>
   </div>
 </template>
 
-<style scoped>
-.landing {
+<style>
+/* ひろの町シンボルカラー（明るい・自然なトーン） */
+:root {
+  --hirono-blue: #2d8fbf;
+  --hirono-blue-light: #5aadd9;
+  --hirono-blue-dim: rgba(45, 143, 191, 0.12);
+  --hirono-green: #3a9b4a;
+  --hirono-green-light: #52b563;
+  --hirono-green-dim: rgba(58, 155, 74, 0.12);
+  --bg-page: #eef2f6;
+  --bg-card: #ffffff;
+  --text-primary: #1e293b;
+  --text-muted: #64748b;
+  --border-subtle: #e2e8f0;
+}
+
+.layout {
   min-height: 100vh;
-  background: linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-  color: #e2e8f0;
+  background: linear-gradient(180deg, #f0f4f8 0%, #e6ecf2 50%, #eef2f6 100%);
+  color: var(--text-primary);
   font-family: 'Segoe UI', system-ui, sans-serif;
-}
-
-.hero {
-  text-align: center;
-  padding: 3rem 1.5rem;
-  border-bottom: 1px solid #334155;
-}
-.hero h1 {
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem;
-  letter-spacing: -0.02em;
-}
-.tagline {
-  margin: 0;
-  color: #94a3b8;
-  font-size: 1rem;
-}
-
-.content {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
-}
-
-.vocabulary,
-.quiz {
-  margin-bottom: 3rem;
-}
-.vocabulary h2,
-.quiz h2 {
-  font-size: 1.25rem;
-  margin: 0 0 0.5rem;
-  color: #f1f5f9;
-}
-.section-desc {
-  margin: 0 0 1.5rem;
-  color: #94a3b8;
-  font-size: 0.9rem;
-}
-
-.word-group {
-  background: #1e293b;
-  border-radius: 12px;
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 1rem;
-  border: 1px solid #334155;
-}
-.root-title {
-  font-size: 1rem;
-  color: #38bdf8;
-  margin: 0 0 0.75rem;
-  font-weight: 600;
-}
-.word-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.word-item {
-  padding: 0.4rem 0;
-  border-bottom: 1px solid #334155;
-  font-size: 0.95rem;
-}
-.word-item:last-child {
-  border-bottom: none;
-}
-.jp {
-  color: #a5b4fc;
-}
-.note {
-  display: block;
-  margin-top: 0.2rem;
-  font-size: 0.85rem;
-  color: #94a3b8;
-}
-
-.quiz-box {
-  background: #1e293b;
-  border-radius: 12px;
-  padding: 1.5rem;
-  border: 1px solid #334155;
-}
-.question-number {
-  margin: 0 0 0.5rem;
-  font-size: 0.85rem;
-  color: #64748b;
-}
-.question-statement {
-  margin: 0 0 1.25rem;
-  font-size: 1.05rem;
-  line-height: 1.5;
-}
-.buttons {
   display: flex;
+  flex-direction: column;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.header-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.logo {
+  text-decoration: none;
+  color: inherit;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.logo-text { color: var(--text-primary); }
+.logo:hover .logo-text { color: var(--hirono-blue); }
+
+.nav {
+  display: flex;
+  gap: 1rem;
+}
+.nav-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+}
+.nav-link:hover { color: var(--text-primary); }
+.nav-link.router-link-active { color: var(--hirono-blue); font-weight: 600; }
+
+.auth-area {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
   gap: 0.75rem;
 }
-.btn {
-  padding: 0.6rem 1.25rem;
+.user-email {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.btn-header {
+  padding: 0.45rem 0.9rem;
   border-radius: 8px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, background 0.2s;
 }
-.btn:hover {
-  opacity: 0.9;
+.btn-header:hover { opacity: 0.9; }
+.btn-primary { background: var(--hirono-blue); color: #fff; }
+.btn-primary:hover { background: var(--hirono-blue-light); }
+.btn-outline { background: transparent; color: var(--text-muted); border: 1px solid var(--border-subtle); }
+.btn-outline:hover { color: var(--hirono-blue); border-color: var(--hirono-blue-light); }
+
+/* Auth modal */
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
 }
-.btn-true {
-  background: #22c55e;
+.auth-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+}
+.auth-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+.auth-card-header h2 { margin: 0; font-size: 1.25rem; color: var(--text-primary); }
+.auth-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 0.25rem;
+}
+.auth-close:hover { color: var(--text-primary); }
+.auth-form { display: flex; flex-direction: column; gap: 0.75rem; }
+.auth-input {
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: #f8fafc;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+.auth-input::placeholder { color: var(--text-muted); }
+.auth-input:focus {
+  outline: none;
+  border-color: var(--hirono-blue);
+  background: #fff;
+}
+.auth-message { margin: 0; font-size: 0.85rem; color: #b45309; }
+.btn-auth {
+  padding: 0.65rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--hirono-blue);
   color: #fff;
-}
-.btn-false {
-  background: #ef4444;
-  color: #fff;
-}
-.btn-next,
-.btn-retry {
-  background: #3b82f6;
-  color: #fff;
-}
-.result {
-  margin-top: 0.5rem;
-}
-.feedback {
-  margin: 0 0 0.75rem;
   font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.25rem;
 }
-.feedback.correct {
-  color: #22c55e;
+.btn-auth:hover:not(:disabled) { background: var(--hirono-blue-light); opacity: 0.95; }
+.btn-auth:disabled { opacity: 0.6; cursor: not-allowed; }
+.auth-switch { margin: 0.75rem 0 0; text-align: center; font-size: 0.9rem; color: var(--text-muted); }
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--hirono-blue);
+  cursor: pointer;
+  text-decoration: underline;
 }
-.feedback.incorrect {
-  color: #f87171;
+.link-btn:hover { color: var(--hirono-blue-light); }
+
+.main { flex: 1; }
+
+.site-footer {
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.7);
+  margin-top: auto;
 }
 
-.quiz-finished {
+.footer-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
   text-align: center;
-  background: #1e293b;
-  border-radius: 12px;
-  padding: 2rem;
-  border: 1px solid #334155;
 }
-.quiz-finished h3 {
-  margin: 0 0 0.75rem;
-  font-size: 1.15rem;
+.footer-logo {
+  display: block;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  margin-bottom: 0.25rem;
 }
-.score {
-  margin: 0 0 1.25rem;
-  font-size: 1.25rem;
-  color: #38bdf8;
+.footer-logo:hover { color: var(--hirono-blue); }
+.footer-tagline {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
-.btn-retry {
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+.footer-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.footer-links a:hover { color: var(--hirono-blue); }
+.footer-copy {
   margin: 0;
-}
-
-.footer {
-  text-align: center;
-  padding: 2rem 1rem;
-  color: #64748b;
-  font-size: 0.85rem;
-  border-top: 1px solid #334155;
-}
-.footer p {
-  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 </style>
