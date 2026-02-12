@@ -54,7 +54,7 @@ provide('openAuth', openAuth)
     <header class="site-header">
       <div class="header-inner">
         <NuxtLink to="/" class="logo">
-          <span class="logo-text">English for Programmers</span>
+          <span class="logo-text">English for Iwate Programmers</span>
         </NuxtLink>
         <nav class="nav">
           <NuxtLink to="/" class="nav-link">トップ</NuxtLink>
@@ -120,7 +120,7 @@ provide('openAuth', openAuth)
 
     <footer class="site-footer">
       <div class="footer-inner">
-        <NuxtLink to="/" class="footer-logo">English for Japanese Programmers</NuxtLink>
+        <NuxtLink to="/" class="footer-logo">English for Iwate Programmers</NuxtLink>
         <p class="footer-tagline">語根で覚える英単語 — Vue + Nuxt + Supabase</p>
         <div class="footer-links">
           <NuxtLink to="/">トップ</NuxtLink>

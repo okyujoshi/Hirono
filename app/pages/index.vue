@@ -81,7 +81,7 @@ function tryAgain () {
     </section>
 
     <header class="hero">
-      <h1>English for Japanese Programmers</h1>
+      <h1>English for Iwate Programmers</h1>
       <p class="tagline">まずはお試し — 語根クイズを2問体験</p>
     </header>
 

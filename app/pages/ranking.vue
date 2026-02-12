@@ -13,7 +13,9 @@ const ranking = ref<ScoreRow[]>([])
 const loading = ref(true)
 const error = ref('')
 
-onMounted(async () => {
+async function fetchRanking () {
+  loading.value = true
+  error.value = ''
   try {
     const { data, error: e } = await supabase
       .from('quiz_scores')
@@ -29,6 +31,10 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+}
+
+onMounted(() => {
+  fetchRanking()
 })
 
 function formatDate (iso: string) {
@@ -49,6 +55,14 @@ function formatDate (iso: string) {
     <header class="page-header">
       <h1>ランキング</h1>
       <p class="page-desc">クイズのスコア上位です。ログインしてクイズに挑戦すると記録されます。</p>
+      <button
+        type="button"
+        class="btn-reload"
+        :disabled="loading"
+        @click="fetchRanking"
+      >
+        {{ loading ? '読み込み中…' : '最新のデータを読み込む' }}
+      </button>
     </header>
 
     <main class="ranking-content">
@@ -108,13 +122,25 @@ function formatDate (iso: string) {
   color: var(--text-primary);
 }
 .page-desc {
-  margin: 0;
+  margin: 0 0 0.75rem;
   color: var(--text-muted);
   font-size: 0.95rem;
   max-width: 480px;
   margin-left: auto;
   margin-right: auto;
 }
+.btn-reload {
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  border: 1px solid var(--hirono-blue);
+  background: transparent;
+  color: var(--hirono-blue);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.btn-reload:hover:not(:disabled) { background: var(--hirono-blue-dim); color: var(--hirono-blue); }
+.btn-reload:disabled { opacity: 0.7; cursor: not-allowed; }
 
 .ranking-content {
   max-width: 720px;

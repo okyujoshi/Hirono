@@ -2,6 +2,24 @@
 
 Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
 
+## Supabase（データベースが読めないとき）
+
+1. **環境変数**  
+   ルートに `.env` を作り、次を設定（値は Supabase Dashboard → Settings → API で確認）:
+   ```env
+   SUPABASE_URL=https://xxxxx.supabase.co
+   SUPABASE_KEY=your-anon-public-key
+   ```
+
+2. **開発サーバーを再起動**  
+   `.env` を変更したら **必ず** 開発サーバーを止めてから `npm run dev` で再起動する。反映されないときは再起動が足りないことが多い。
+
+3. **テーブル作成**  
+   Supabase の SQL Editor で `supabase/schema.sql` を実行し、`word_groups` と `words` を作成する。未作成だと「単語が0件」やエラーになる。
+
+4. **学習ページのエラー表示**  
+   `/learn` でエラーが出る場合、画面上にメッセージと「再試行」ボタンが表示される。表示されたエラー内容で原因を切り分けられる。
+
 ## Setup
 
 Make sure to install dependencies:

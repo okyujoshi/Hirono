@@ -1,0 +1,9 @@
+-- 全 word_groups の共通フォーマット（今日の単語で各 id がランダムに表示されます）
+--
+-- root_word      … 今日のcode（例: const, cur, put）
+-- root_meaning   … meaning（例: 共に＋立つ）
+-- derivatives   … 覚えよう [{"word":"...","meaning":"..."}]
+-- examples       … 例文 [{"text":"... ____ ...","answer":"..."}]  空欄は ____
+-- relevent       … ○×用（true=仲間 / false=仲間ではない）
+--
+-- 新規レコードは schema.sql の insert を参考に Table Editor で追加してください。
