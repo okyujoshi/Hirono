@@ -23,7 +23,7 @@ const sampleWordGroups = [
 ]
 
 const sampleQuestions = [
-  { id: 1, statement: '"Cursor" と "current" は同じ語根（cur）に由来する。', correct: true },
+  { id: 1, statement: '"Cursor" と "current" は同じ語源（cur）に由来する。', correct: true },
   { id: 2, statement: '"Concurrent" は「同時・並行」を意味し、プログラミングでよく使う。', correct: true }
 ]
 
@@ -69,7 +69,7 @@ function tryAgain () {
     <section class="cta-banner">
       <div class="cta-inner">
         <h2 class="cta-title">無料登録で、スコアを保存してランキングに参加しよう</h2>
-        <p class="cta-desc">語根で英単語を学び、クイズに挑戦。登録するとスコアが記録され、ランキングで競えます。</p>
+        <p class="cta-desc">同じ語源で英単語を学び、クイズに挑戦。登録するとスコアが記録され、ランキングで競えます。</p>
         <button type="button" class="btn-cta" @click="openAuth?.('signup')">
           無料で新規登録
         </button>
@@ -82,14 +82,14 @@ function tryAgain () {
 
     <header class="hero">
       <h1>English for Iwate Programmers</h1>
-      <p class="tagline">まずはお試し — 語根クイズを2問体験</p>
+      <p class="tagline">まずはお試し — 同じ語源クイズを2問体験</p>
     </header>
 
     <main class="content">
       <!-- 学習内容サンプル（表示のみ） -->
       <section class="sample-content">
         <h2>学習内容のサンプル</h2>
-        <p class="section-desc">語根から関連する英単語をまとめて覚えます。登録するとさらに多くの語根・単語とクイズが利用できます。</p>
+        <p class="section-desc">同じ語源から関連する英単語をまとめて覚えます。登録するとさらに多くの同じ語源・単語とクイズが利用できます。</p>
         <div
           v-for="(group, gIndex) in sampleWordGroups"
           :key="gIndex"

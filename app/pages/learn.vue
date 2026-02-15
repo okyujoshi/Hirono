@@ -1,6 +1,6 @@
 <script setup lang="ts">
 type Derivative = { word: string, meaning: string }
-type ExampleItem = { text: string, answer: string }
+type ExampleItem = { text: string, answer: string, jpn?: string }
 type WordGroup = {
   id: number
   root_word: string
@@ -17,6 +17,8 @@ const groups = ref<WordGroup[]>([])
 const loading = ref(true)
 const error = ref('')
 
+/** データ整備のため一時非表示。true にすると○×クイズのメニューが表示される */
+const showOxQuiz = false
 const mode = ref<'fill' | 'ox' | 'review' | null>(null)
 const current = ref<WordGroup | null>(null)
 const todaysWord = ref<WordGroup | null>(null)
@@ -28,6 +30,17 @@ const flash = ref<'correct' | 'wrong' | null>(null)
 const speechEnabled = ref(true)
 const revealedBlanks = ref<Record<number, boolean>>({})
 const todaysFeedback = ref<'good' | 'bad' | null>(null)
+
+/** examples の各要素を { text, answer, jpn? } に正規化（DBのキーゆれに対応） */
+function normalizeExamples (raw: unknown): ExampleItem[] {
+  if (!Array.isArray(raw)) return []
+  return raw.map((ex: Record<string, unknown>) => {
+    const text = String(ex?.text ?? '')
+    const answer = String(ex?.answer ?? '')
+    const jpn = ex?.jpn ?? (ex as Record<string, unknown>)?.Jpn ?? (ex as Record<string, unknown>)?.JPN
+    return { text, answer, ...(jpn != null && jpn !== '' ? { jpn: String(jpn) } : {}) } as ExampleItem
+  })
+}
 
 async function fetchGroups () {
   loading.value = true
@@ -46,7 +59,7 @@ async function fetchGroups () {
       root_word: String(row.root_word ?? ''),
       root_meaning: String(row.root_meaning ?? ''),
       derivatives: Array.isArray(row.derivatives) ? row.derivatives as Derivative[] : [],
-      examples: Array.isArray(row.examples) ? row.examples as ExampleItem[] : [],
+      examples: normalizeExamples(row.examples),
       example_sentence_en: row.example_sentence_en != null ? String(row.example_sentence_en) : null,
       example_sentence_jpn: row.example_sentence_jpn != null ? String(row.example_sentence_jpn) : null,
       relevent: Boolean(row.relevent)
@@ -88,7 +101,7 @@ function startQuestion () {
   } else {
     currentExample.value = null
   }
-  if (speechEnabled.value && currentExample.value?.text) {
+  if (speechEnabled.value && mode.value !== 'fill' && currentExample.value?.text) {
     speakEn(currentExample.value.text)
   }
   if (speechEnabled.value && mode.value === 'ox' && row?.root_word) {
@@ -220,31 +233,34 @@ watch([groups, mode], () => {
             <h3 class="todays-subheading">例文</h3>
             <p class="todays-hint">____ にマウスを乗せると答えが表示され、英文が読み上げられます。</p>
             <div v-if="todaysWord.examples?.length" class="todays-examples">
-              <p
+              <div
                 v-for="(ex, exIdx) in todaysWord.examples"
                 :key="exIdx"
-                class="example-sentence-row"
+                class="example-sentence-wrap"
               >
-                <template v-if="ex.text">
-                  <span v-for="(part, pIdx) in splitBlank(ex.text)" :key="pIdx">
-                    <template v-if="isBlankPart(part)">
-                      <span
-                        class="blank-spot"
-                        @mouseenter="onBlankHover(ex, exIdx)"
-                      >
-                        {{ revealedBlanks[exIdx] ? ex.answer : '____' }}
-                      </span>
-                    </template>
-                    <template v-else>{{ part }}</template>
-                  </span>
-                </template>
-              </p>
+                <p class="example-sentence-row">
+                  <template v-if="ex.text">
+                    <span v-for="(part, pIdx) in splitBlank(ex.text)" :key="pIdx">
+                      <template v-if="isBlankPart(part)">
+                        <span
+                          class="blank-spot"
+                          @mouseenter="onBlankHover(ex, exIdx)"
+                        >
+                          {{ revealedBlanks[exIdx] ? ex.answer : '____' }}
+                        </span>
+                      </template>
+                      <template v-else>{{ part }}</template>
+                    </span>
+                  </template>
+                </p>
+                <p v-if="ex.jpn" class="example-jpn-inline">{{ ex.jpn }}</p>
+              </div>
             </div>
             <div v-else-if="todaysWord.example_sentence_en || todaysWord.example_sentence_jpn" class="todays-example">
               <p v-if="todaysWord.example_sentence_en" class="example-en">{{ todaysWord.example_sentence_en }}</p>
               <p v-if="todaysWord.example_sentence_jpn" class="example-jp">{{ todaysWord.example_sentence_jpn }}</p>
             </div>
-            <button type="button" class="btn btn-todays-next" @click="pickTodaysWord">別の語根を表示（ランダム）</button>
+            <button type="button" class="btn btn-todays-next" @click="pickTodaysWord">別の同じ語源を表示（ランダム）</button>
             <div class="feedback-row">
               <span class="feedback-label">この内容は役に立ちましたか？</span>
               <button
@@ -270,25 +286,7 @@ watch([groups, mode], () => {
           <p v-else class="muted-inline">データがありません。</p>
         </section>
 
-        <p class="menu-intro">今日はどれに挑戦する？</p>
-        <div class="quiz-menu">
-          <button type="button" class="menu-card" @click="mode = 'fill'; startQuestion()">
-            <span class="menu-card-icon">✏️</span>
-            <h2 class="menu-card-title">穴埋めクイズ</h2>
-            <p class="menu-card-desc">例文の空欄に単語を入れよう。語根で意味が広がる。</p>
-            <span class="menu-card-fun">空欄を埋めてスッキリ</span>
-          </button>
-          <button type="button" class="menu-card" @click="mode = 'ox'; startQuestion()">
-            <span class="menu-card-icon">○×</span>
-            <h2 class="menu-card-title">仲間当てクイズ</h2>
-            <p class="menu-card-desc">この単語、語根の仲間？ 即答で頭が冴える。</p>
-            <span class="menu-card-fun">直感で答えてみよう</span>
-          </button>
-        </div>
-        <label class="speech-label menu-speech">
-          <input v-model="speechEnabled" type="checkbox" />
-          音声読み上げ（穴埋め・○×で英文を読み上げ）
-        </label>
+        <p class="menu-intro">過去に出てきた別の語源を思い出して、<button type="button" class="menu-intro-btn" @click="mode = 'fill'; startQuestion()">穴埋め挑戦</button></p>
       </template>
 
       <template v-else>
@@ -301,11 +299,14 @@ watch([groups, mode], () => {
           </div>
           <template v-else-if="current && currentExample">
             <div class="card-head">
-              <p class="card-label">語根の意味</p>
+              <p class="card-label">同じ語源の意味</p>
               <p class="card-title">{{ current.root_meaning }}</p>
             </div>
             <div class="card-body">
               <p class="question-text">{{ currentExample.text }}</p>
+              <p v-if="currentExample.jpn" class="example-jpn-inline fill-jpn fill-hint">
+                <span class="hint-label">ヒント：</span>{{ currentExample.jpn }}
+              </p>
               <div v-if="!showResult" class="fill-row">
                 <input
                   v-model="fillInput"
@@ -316,8 +317,20 @@ watch([groups, mode], () => {
                 />
                 <button type="button" class="btn btn-primary" @click="submitFill">答え合わせ</button>
               </div>
-              <div v-else class="result-text" :class="userCorrect ? 'correct' : 'wrong'">
-                {{ userCorrect ? '✓ 正解です！' : `✗ 正解は ${currentExample.answer} です。` }}
+              <div v-else class="fill-result">
+                <p class="result-text" :class="userCorrect ? 'correct' : 'wrong'">
+                  {{ userCorrect ? '✓ 正解です！' : `✗ 正解は ${currentExample.answer} です。` }}
+                </p>
+                <p class="filled-sentence">{{ fullSentence(currentExample) }}</p>
+                <p v-if="currentExample.jpn" class="example-jpn-inline fill-jpn">{{ currentExample.jpn }}</p>
+                <button
+                  type="button"
+                  class="btn-listen-sentence"
+                  title="全文を聴く"
+                  @click="speakEn(fullSentence(currentExample))"
+                >
+                  🔊 全文を聴く
+                </button>
               </div>
             </div>
           </template>
@@ -326,7 +339,7 @@ watch([groups, mode], () => {
         <!-- 復習モード（派生語・例文を表示） -->
         <section v-if="mode === 'review' && current" class="card quiz-card">
           <div class="card-head">
-            <p class="card-label">語根</p>
+            <p class="card-label">同じ語源</p>
             <p class="question-word">{{ current.root_word }}</p>
             <p class="card-sub">{{ current.root_meaning }}</p>
           </div>
@@ -347,7 +360,7 @@ watch([groups, mode], () => {
             </div>
           </div>
           <div class="card-actions">
-            <button type="button" class="btn btn-next" @click="startQuestion">次の語根</button>
+            <button type="button" class="btn btn-next" @click="startQuestion">次の同じ語源</button>
           </div>
         </section>
 
@@ -479,12 +492,27 @@ watch([groups, mode], () => {
   color: var(--text-muted);
 }
 .todays-examples { margin: 0 0 0.5rem; }
+.example-sentence-wrap {
+  margin-bottom: 0.75rem;
+}
+.example-sentence-wrap:last-child { margin-bottom: 0; }
 .example-sentence-row {
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.2rem;
   font-size: 1rem;
   color: var(--text-primary);
 }
-.example-sentence-row:last-child { margin-bottom: 0; }
+.example-jpn-inline {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.example-jpn-inline.fill-jpn { margin-bottom: 0.5rem; }
+.fill-hint .hint-label {
+  font-weight: 600;
+  color: var(--hirono-blue);
+  margin-right: 0.25rem;
+}
 .blank-spot {
   display: inline;
   padding: 0.1em 0.35em;
@@ -550,6 +578,21 @@ watch([groups, mode], () => {
   margin: 0 0 1.25rem;
   font-size: 1.05rem;
   color: var(--text-primary);
+}
+.menu-intro-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--hirono-blue);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+.menu-intro-btn:hover {
+  background: var(--hirono-blue-light);
+  opacity: 0.95;
   text-align: center;
 }
 .quiz-menu {
@@ -737,6 +780,26 @@ watch([groups, mode], () => {
 .result-text { margin: 0; font-weight: 500; }
 .result-text.correct { color: var(--hirono-green); }
 .result-text.wrong { color: #dc2626; }
+.fill-result { margin-top: 0.5rem; }
+.fill-result .filled-sentence {
+  margin: 0.5rem 0 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.btn-listen-sentence {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  border: 1px solid var(--hirono-blue-light);
+  background: var(--hirono-blue-dim);
+  color: var(--hirono-blue);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.btn-listen-sentence:hover { background: var(--hirono-blue-light); color: #fff; }
 .result-hint { font-weight: normal; color: var(--text-muted); }
 
 .mode-row {

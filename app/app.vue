@@ -1,6 +1,9 @@
 <script setup lang="ts">
 const user = useSupabaseUser()
 const supabase = useSupabaseClient()
+const { public: config } = useRuntimeConfig()
+const adminEmail = (config.adminEmail as string) || 'hutz@nifty.com'
+const isAdmin = computed(() => (user.value?.email ?? '').toLowerCase() === adminEmail.toLowerCase())
 
 const authOpen = ref(false)
 const authMode = ref<'login' | 'signup'>('login')
@@ -59,11 +62,14 @@ provide('openAuth', openAuth)
         <nav class="nav">
           <NuxtLink to="/" class="nav-link">トップ</NuxtLink>
           <NuxtLink to="/learn" class="nav-link">学習</NuxtLink>
+          <NuxtLink to="/beginner" class="nav-link">初心者</NuxtLink>
           <NuxtLink to="/ranking" class="nav-link">ランキング</NuxtLink>
+          <NuxtLink to="/about" class="nav-link">このサイトについて</NuxtLink>
+          <NuxtLink v-if="isAdmin" to="/admin" class="nav-link">管理</NuxtLink>
         </nav>
         <div class="auth-area">
           <template v-if="user">
-            <span class="user-email">{{ user.email }}</span>
+            <span v-if="isAdmin" class="user-label">管理人</span>
             <button type="button" class="btn-header btn-outline" @click="signOut">
               ログアウト
             </button>
@@ -121,13 +127,14 @@ provide('openAuth', openAuth)
     <footer class="site-footer">
       <div class="footer-inner">
         <NuxtLink to="/" class="footer-logo">English for Iwate Programmers</NuxtLink>
-        <p class="footer-tagline">語根で覚える英単語 — Vue + Nuxt + Supabase</p>
+        <p class="footer-tagline">同じ語源で覚える英単語 — Vue + Nuxt + Supabase</p>
         <div class="footer-links">
           <NuxtLink to="/">トップ</NuxtLink>
           <NuxtLink to="/learn">学習</NuxtLink>
           <NuxtLink to="/ranking">ランキング</NuxtLink>
+          <NuxtLink to="/about">このサイトについて</NuxtLink>
         </div>
-        <p class="footer-copy">© 2025 — 日本人プログラマのための英単語</p>
+        <p class="footer-copy">© 2026 — 岩手県のエンジニアの英語を爆上げする委員会</p>
       </div>
     </footer>
   </div>
@@ -207,12 +214,9 @@ provide('openAuth', openAuth)
   align-items: center;
   gap: 0.75rem;
 }
-.user-email {
+.user-label {
   font-size: 0.85rem;
   color: var(--text-muted);
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .btn-header {
   padding: 0.45rem 0.9rem;

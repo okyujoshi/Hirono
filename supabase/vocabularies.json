@@ -1,0 +1,137 @@
+{
+  "_comment": "ここに root_word だけ（または root_word + root_meaning）を書けば、残りは自動。derivatives を書けば穴埋め例文も自動作成。○×の「×」用は relevent: false。最小例: {\"root_word\":\"script\",\"root_meaning\":\"書く (write)\"}"
+  ,
+  "vocabularies": [
+    {
+      "root_word": "config",
+      "root_meaning": "共に＋形作る",
+      "derivatives": [
+        { "word": "configuration", "meaning": "設定" },
+        { "word": "configurable", "meaning": "設定可能な" }
+      ],
+      "examples": [
+        { "text": "Change the ____ in the config file.", "answer": "configuration", "jpn": "設定ファイルの設定を変更する。" },
+        { "text": "The setting is ____ .", "answer": "configurable", "jpn": "その設定は変更可能です。" }
+      ],
+      "relevent": true
+    },
+    {
+      "root_word": "figure",
+      "root_meaning": "形作る、図 (shape, form)",
+      "derivatives": [
+        { "word": "figure", "meaning": "図、図形" },
+        { "word": "figure out", "meaning": "考え出す、解決する" }
+      ],
+      "examples": [
+        { "text": "See ____ 1 for the diagram.", "answer": "figure", "jpn": "図は図1を参照。" },
+        { "text": "Let me ____ out the problem.", "answer": "figure out", "jpn": "問題を考え出そう。" }
+      ],
+      "relevent": true
+    },
+    {
+      "root_word": "UL",
+      "root_meaning": "順番がないリスト(unordered list)",
+      "derivatives": [
+        { "word": "disorder", "meaning": "混乱・無秩序" },
+        { "word": "order", "meaning": "秩序・順番" },
+        { "word": "orderly", "meaning": "整然とした・規律正しい" }
+      ],
+      "examples": [
+        { "text": "The list has no ____ .", "answer": "order", "jpn": "そのリストに順序はない。" },
+        { "text": "The room was in ____ .", "answer": "disorder", "jpn": "部屋は散らかっていた。" },
+        { "text": "Keep the files ____ .", "answer": "orderly", "jpn": "ファイルを整理して保管する。" }
+      ],
+      "relevent": true
+    },
+    {
+      "root_word": "ref",
+      "root_meaning": "言及、参照、参考資料(reference)",
+      "derivatives": [
+        { "word": "refer to", "meaning": "参照する、言及する" },
+        { "word": "referral", "meaning": "紹介、推薦、差し戻し" },
+        { "word": "Referendum", "meaning": "国民投票" }
+      ],
+      "examples": [
+        { "text": "____ to the manual for details.", "answer": "Refer", "jpn": "詳細はマニュアルを参照してください。" },
+        { "text": "The ____ was successful.", "answer": "referral", "jpn": "紹介はうまくいった。" }
+      ],
+      "relevent": true
+    },
+    {
+      "root_word": "meta",
+      "root_meaning": "後に・超越・高次元",
+      "derivatives": [
+        { "word": "metaphor", "meaning": "比喩" },
+        { "word": "metabolism", "meaning": "代謝" },
+        { "word": "metabolic", "meaning": "代謝の" },
+        { "word": "metadynamics", "meaning": "メタダイナミクス" }
+      ],
+      "examples": [
+        { "text": "It is a ____ for success.", "answer": "metaphor", "jpn": "成功の比喩だ。" },
+        { "text": "____ breaks down nutrients in the body.", "answer": "Metabolism", "jpn": "代謝は体内で栄養を分解する。" }
+      ],
+      "relevent": true
+    },
+    {
+      "root_word": "port",
+      "root_meaning": "港・運ぶ (carry)",
+      "derivatives": [
+        { "word": "export", "meaning": "輸出する、エクスポート" },
+        { "word": "import", "meaning": "輸入する、インポート" },
+        { "word": "transport", "meaning": "運送する" }
+      ],
+      "examples": [
+        { "text": "____ the data to a CSV file.", "answer": "Export", "jpn": "データをCSVファイルにエクスポートする。" },
+        { "text": "____ the module at the top.", "answer": "Import", "jpn": "先頭でモジュールをインポートする。" },
+        { "text": "We use trucks to ____ goods.", "answer": "transport", "jpn": "トラックで荷物を運送する。" }
+      ],
+      "example_sentence_en": "Export the data to a CSV file.",
+      "example_sentence_jpn": "データをCSVファイルにエクスポートする。",
+      "relevent": true
+    },
+    {
+      "root_word": "source",
+      "root_meaning": "湧き出る・源 (rise, origin)",
+      "derivatives": [
+        { "word": "source", "meaning": "源、出所、ソース（コードの）" },
+        { "word": "resource", "meaning": "資源、リソース" },
+        { "word": "surge", "meaning": "急増する、波" },
+        { "word": "resurgent", "meaning": "再び立ち上がる、復活する" }
+      ],
+      "examples": [
+        { "text": "Check the ____ of the error.", "answer": "source", "jpn": "エラーの原因を確認する。" },
+        { "text": "We need to manage ____ efficiently.", "answer": "resource", "jpn": "リソースを効率的に管理する必要がある。" }
+      ],
+      "example_sentence_en": "Open the source file and fix the bug.",
+      "example_sentence_jpn": "ソースファイルを開いてバグを直す。",
+      "relevent": true
+    },
+    {
+      "root_word": "struct",
+      "root_meaning": "積み上げる、建てる (build)",
+      "derivatives": [
+        { "word": "structure", "meaning": "構造" },
+        { "word": "construct", "meaning": "建設する、構築する" },
+        { "word": "instruction", "meaning": "指示、命令" }
+      ],
+      "examples": [
+        { "text": "The ____ of the data is important.", "answer": "structure", "jpn": "データの構造が重要だ。" },
+        { "text": "____ the object with the new keyword.", "answer": "Construct", "jpn": "new キーワードでオブジェクトを構築する。" },
+        { "text": "Follow the ____ on the screen.", "answer": "instruction", "jpn": "画面の指示に従う。" }
+      ],
+      "relevent": true
+    },
+    {
+      "root_word": "apple",
+      "root_meaning": "りんご（同じ語源とは無関係の単語）",
+      "derivatives": [],
+      "relevent": false
+    },
+    {
+      "root_word": "random",
+      "root_meaning": "ランダム（同じ語源とは無関係）",
+      "derivatives": [],
+      "relevent": false
+    }
+  ]
+}
