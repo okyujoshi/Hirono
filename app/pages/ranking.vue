@@ -9,6 +9,9 @@ type ScoreRow = {
   created_at: string
 }
 
+/** ランキング機能の公開前は true。公開したら false に変更 */
+const comingSoon = true
+
 const ranking = ref<ScoreRow[]>([])
 const loading = ref(true)
 const error = ref('')
@@ -34,7 +37,7 @@ async function fetchRanking () {
 }
 
 onMounted(() => {
-  fetchRanking()
+  if (!comingSoon) fetchRanking()
 })
 
 function formatDate (iso: string) {
@@ -56,6 +59,7 @@ function formatDate (iso: string) {
       <h1>ランキング</h1>
       <p class="page-desc">クイズのスコア上位です。ログインしてクイズに挑戦すると記録されます。</p>
       <button
+        v-if="!comingSoon"
         type="button"
         class="btn-reload"
         :disabled="loading"
@@ -66,6 +70,14 @@ function formatDate (iso: string) {
     </header>
 
     <main class="ranking-content">
+      <section v-if="comingSoon" class="coming-soon">
+        <p class="coming-soon-icon" aria-hidden="true">🚧</p>
+        <h2 class="coming-soon-title">準備中です</h2>
+        <p class="coming-soon-desc">ランキング機能は近日中に公開します。しばらくお待ちください。</p>
+        <NuxtLink to="/learn" class="btn-start">学習ページへ</NuxtLink>
+      </section>
+
+      <template v-else>
       <div v-if="loading" class="loading">読み込み中…</div>
       <p v-else-if="error" class="error-msg">{{ error }}</p>
 
@@ -103,6 +115,7 @@ function formatDate (iso: string) {
       <div class="ranking-actions">
         <NuxtLink to="/" class="btn-back">ホームに戻る</NuxtLink>
       </div>
+      </template>
     </main>
   </div>
 </template>
@@ -147,6 +160,44 @@ function formatDate (iso: string) {
   margin: 0 auto;
   padding: 2rem 1.5rem;
 }
+
+.coming-soon {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 2px dashed var(--hirono-blue-light);
+  border-radius: 16px;
+  margin-bottom: 1.5rem;
+}
+.coming-soon-icon {
+  font-size: 3rem;
+  margin: 0 0 0.5rem;
+  line-height: 1;
+}
+.coming-soon-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  color: var(--text-primary);
+}
+.coming-soon-desc {
+  margin: 0 0 1.5rem;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+.coming-soon .btn-start {
+  display: inline-block;
+  padding: 0.65rem 1.5rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  background: var(--hirono-blue);
+  color: #fff;
+  text-decoration: none;
+  transition: background 0.2s, opacity 0.2s;
+}
+.coming-soon .btn-start:hover { background: var(--hirono-blue-light); opacity: 0.95; }
 
 .loading, .error-msg {
   text-align: center;
