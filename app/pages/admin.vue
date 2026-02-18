@@ -26,6 +26,8 @@ const message = ref('')
 
 const DERIVATIVES_COUNT = 3
 const EXAMPLES_COUNT = 3
+const DRAFT_KEY = 'hirono-admin-add-draft'
+const hasDraft = ref(false)
 
 // フォーム（新規 / 編集共通）
 const formOpen = ref(false)
@@ -77,7 +79,7 @@ async function fetchGroups () {
 }
 
 function padDerivatives (arr: Derivative[]): { word: string, meaning: string, explanation_jpn: string }[] {
-  const rows = (arr ?? []).slice(0, DERIVATIVES_COUNT).map(d => ({
+  const rows = (arr ?? []).map(d => ({
     word: d.word ?? '',
     meaning: d.meaning ?? '',
     explanation_jpn: (d as { explanation_jpn?: string }).explanation_jpn ?? ''
@@ -87,13 +89,70 @@ function padDerivatives (arr: Derivative[]): { word: string, meaning: string, ex
 }
 
 function padExamples (arr: ExampleItem[]): { text: string, answer: string, jpn: string }[] {
-  const rows = (arr ?? []).slice(0, EXAMPLES_COUNT).map(e => ({
+  const rows = (arr ?? []).map(e => ({
     text: e.text ?? '',
     answer: e.answer ?? '',
     jpn: (e as { jpn?: string }).jpn ?? ''
   }))
   while (rows.length < EXAMPLES_COUNT) rows.push({ text: '', answer: '', jpn: '' })
   return rows
+}
+
+function addDerivativeRow () {
+  form.value.derivativesRows.push({ word: '', meaning: '', explanation_jpn: '' })
+}
+
+function addExampleRow () {
+  form.value.examplesRows.push({ text: '', answer: '', jpn: '' })
+}
+
+function saveDraft () {
+  if (editingId.value != null) return
+  try {
+    const data = {
+      root_word: form.value.root_word,
+      root_meaning: form.value.root_meaning,
+      root_explanation_jpn: form.value.root_explanation_jpn,
+      derivativesRows: [...form.value.derivativesRows],
+      examplesRows: [...form.value.examplesRows],
+      example_sentence_en: form.value.example_sentence_en,
+      example_sentence_jpn: form.value.example_sentence_jpn,
+      relevent: form.value.relevent,
+      formMode: formMode.value,
+      derivativesJson: form.value.derivativesJson,
+      examplesJson: form.value.examplesJson
+    }
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(data))
+  } catch (_) {}
+}
+
+function loadDraft () {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY)
+    if (!raw) return
+    const data = JSON.parse(raw)
+    form.value.root_word = data.root_word ?? ''
+    form.value.root_meaning = data.root_meaning ?? ''
+    form.value.root_explanation_jpn = data.root_explanation_jpn ?? ''
+    form.value.derivativesRows = Array.isArray(data.derivativesRows) ? data.derivativesRows : padDerivatives([])
+    form.value.examplesRows = Array.isArray(data.examplesRows) ? data.examplesRows : padExamples([])
+    form.value.example_sentence_en = data.example_sentence_en ?? ''
+    form.value.example_sentence_jpn = data.example_sentence_jpn ?? ''
+    form.value.relevent = data.relevent !== false
+    if (data.formMode === 'json') {
+      form.value.derivativesJson = data.derivativesJson ?? '[]'
+      form.value.examplesJson = data.examplesJson ?? '[]'
+      formMode.value = 'json'
+    }
+    hasDraft.value = false
+  } catch (_) {}
+}
+
+function clearDraft () {
+  try {
+    localStorage.removeItem(DRAFT_KEY)
+    hasDraft.value = false
+  } catch (_) {}
 }
 
 function openAddForm () {
@@ -112,6 +171,11 @@ function openAddForm () {
     relevent: true
   }
   formError.value = ''
+  try {
+    hasDraft.value = !!localStorage.getItem(DRAFT_KEY)
+  } catch {
+    hasDraft.value = false
+  }
   formOpen.value = true
 }
 
@@ -167,6 +231,9 @@ function switchToSimple () {
 }
 
 function closeForm () {
+  if (editingId.value == null && (form.value.root_word.trim() || form.value.root_meaning.trim() || form.value.derivativesRows.some(r => r.word.trim() || r.meaning.trim()) || form.value.examplesRows.some(r => r.text.trim() || r.answer.trim()))) {
+    saveDraft()
+  }
   formOpen.value = false
   formExpanded.value = false
   editingId.value = null
@@ -219,6 +286,7 @@ async function submitForm () {
         .from('word_groups')
         .update(payload)
         .eq('id', editingId.value)
+      if (!e) clearDraft()
       if (e) {
         formError.value = e.message
         return
@@ -231,6 +299,7 @@ async function submitForm () {
         return
       }
       message.value = '追加しました。'
+      clearDraft()
     }
     closeForm()
     await fetchGroups()
@@ -332,6 +401,17 @@ watch(isAdmin, (ok) => {
             </div>
             <form class="admin-form" @submit.prevent="submitForm">
               <p v-if="formError" class="admin-form-error">{{ formError }}</p>
+              <p v-if="editingId == null" class="admin-form-hint">
+                語源と意味だけ入力して保存できます。派生語・例文は空のままでもOK。あとから編集で追加できます。閉じると下書き保存され、次に「新規追加」で復元できます。
+              </p>
+              <p v-if="editingId == null && hasDraft" class="admin-draft-actions">
+                <button type="button" class="btn-admin btn-outline btn-sm" @click="loadDraft">
+                  下書きを復元
+                </button>
+                <button type="button" class="btn-admin btn-outline btn-sm btn-link" @click="clearDraft">
+                  下書きを破棄
+                </button>
+              </p>
               <label>
                 <span>語源（root_word） *</span>
                 <input v-model="form.root_word" type="text" class="admin-input" required />
@@ -345,10 +425,10 @@ watch(isAdmin, (ok) => {
                 <textarea v-model="form.root_explanation_jpn" class="admin-textarea admin-textarea--short" rows="3" placeholder="例：この語源はラテン語の〇〇がもとです。プログラミングでは…" />
               </label>
 
-              <!-- Simple: 3 derivatives -->
+              <!-- Simple: derivatives + examples (add rows to enrich content) -->
               <template v-if="formMode === 'simple'">
                 <div class="admin-fieldset">
-                  <span class="admin-fieldset-label">派生語（3件）・説明は初心者ページで表示</span>
+                  <span class="admin-fieldset-label">派生語（{{ form.derivativesRows.length }}件）・説明は初心者ページで表示</span>
                   <div
                     v-for="(row, i) in form.derivativesRows"
                     :key="'d'+i"
@@ -360,10 +440,15 @@ watch(isAdmin, (ok) => {
                     </div>
                     <input v-model="row.explanation_jpn" type="text" class="admin-input admin-input--explain" placeholder="説明（任意）初心者向け日本語" />
                   </div>
-                  <button type="button" class="btn-admin btn-outline btn-sm btn-link" @click="switchToJson">JSON で編集</button>
+                  <div class="admin-fieldset-actions">
+                    <button type="button" class="btn-admin btn-outline btn-sm btn-add-row" @click="addDerivativeRow">
+                      ＋ 派生語を1件追加
+                    </button>
+                    <button type="button" class="btn-admin btn-outline btn-sm btn-link" @click="switchToJson">JSON で編集</button>
+                  </div>
                 </div>
                 <div class="admin-fieldset">
-                  <span class="admin-fieldset-label">例文（3件）空欄は ____</span>
+                  <span class="admin-fieldset-label">例文（{{ form.examplesRows.length }}件）空欄は ____</span>
                   <div
                     v-for="(row, i) in form.examplesRows"
                     :key="'e'+i"
@@ -373,7 +458,12 @@ watch(isAdmin, (ok) => {
                     <input v-model="row.answer" type="text" class="admin-input admin-input--sm" placeholder="answer" />
                     <input v-model="row.jpn" type="text" class="admin-input admin-input--sm" placeholder="日本語訳（任意）" />
                   </div>
-                  <button type="button" class="btn-admin btn-outline btn-sm btn-link" @click="switchToJson">JSON で編集</button>
+                  <div class="admin-fieldset-actions">
+                    <button type="button" class="btn-admin btn-outline btn-sm btn-add-row" @click="addExampleRow">
+                      ＋ 例文を1件追加
+                    </button>
+                    <button type="button" class="btn-admin btn-outline btn-sm btn-link" @click="switchToJson">JSON で編集</button>
+                  </div>
                 </div>
               </template>
               <template v-else>
@@ -553,6 +643,17 @@ watch(isAdmin, (ok) => {
 .admin-form-close:hover { color: var(--text-primary); }
 .admin-form { display: flex; flex-direction: column; gap: 0.75rem; }
 .admin-form-error { color: #dc2626; font-size: 0.9rem; margin: 0; }
+.admin-form-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0 0 0.25rem;
+  line-height: 1.5;
+  padding: 0.5rem 0.75rem;
+  background: #f0f9ff;
+  border-radius: 8px;
+  border-left: 3px solid var(--hirono-blue);
+}
+.admin-draft-actions { display: flex; gap: 0.5rem; margin: 0 0 0.5rem; flex-wrap: wrap; }
 .admin-form label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9rem; }
 .admin-form label span { font-weight: 500; color: var(--text-primary); }
 .admin-fieldset {
@@ -585,7 +686,10 @@ watch(isAdmin, (ok) => {
   gap: 0.35rem;
 }
 .admin-example-row .admin-input--sm { max-width: 14rem; }
-.btn-link { margin-top: 0.25rem; background: none; color: var(--hirono-blue); border: none; font-weight: 500; }
+.admin-fieldset-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
+.btn-add-row { color: var(--hirono-blue); border-color: var(--hirono-blue-light); }
+.btn-add-row:hover { background: var(--hirono-blue-dim); }
+.btn-link { background: none; color: var(--hirono-blue); border: none; font-weight: 500; }
 .btn-link:hover { text-decoration: underline; }
 .admin-input {
   padding: 0.5rem 0.75rem;

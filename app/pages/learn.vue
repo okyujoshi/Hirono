@@ -109,11 +109,12 @@ function startQuestion () {
   }
 }
 
-function speakEn (text: string) {
+/** rate: 1 = 通常, 0.52 = ゆっくり */
+function speakEn (text: string, rate: number = 0.9) {
   if (typeof window === 'undefined' || !window.speechSynthesis) return
   const u = new SpeechSynthesisUtterance(text)
   u.lang = 'en-US'
-  u.rate = 0.9
+  u.rate = rate
   window.speechSynthesis.cancel()
   window.speechSynthesis.speak(u)
 }
@@ -220,13 +221,21 @@ watch([groups, mode], () => {
         <section class="card todays-card">
           <h2 class="todays-heading">今日の単語 <span class="todays-badge">（ランダムに1件表示）</span></h2>
           <div v-if="todaysWord" class="todays-body">
-            <p class="todays-code">今日のcode: <strong>{{ todaysWord.root_word }}</strong> <button type="button" class="btn-pronounce" title="発音" @click="speakEn(todaysWord.root_word)">🔊</button></p>
+            <p class="todays-code">今日のcode: <strong>{{ todaysWord.root_word }}</strong>
+              <span v-if="speechEnabled" class="speak-buttons">
+                <button type="button" class="btn-pronounce" title="発音（通常）" aria-label="発音・通常" @click="speakEn(todaysWord.root_word)">🔊</button>
+                <button type="button" class="btn-pronounce btn-pronounce-slow" title="発音（ゆっくり）" aria-label="発音・ゆっくり" @click="speakEn(todaysWord.root_word, 0.52)">🐢</button>
+              </span>
+            </p>
             <p class="todays-meaning">基本的な意味: {{ todaysWord.root_meaning }}</p>
             <h3 class="todays-subheading">覚えよう</h3>
             <ul v-if="todaysWord.derivatives?.length" class="derivatives-list derivatives-inline">
               <li v-for="(d, i) in todaysWord.derivatives" :key="i" class="derivatives-item">
                 <span class="deriv-word">{{ d.word }}</span>
-                <button type="button" class="btn-pronounce" title="発音" @click="speakEn(d.word)">🔊</button>
+                <span v-if="speechEnabled" class="speak-buttons">
+                  <button type="button" class="btn-pronounce" title="発音（通常）" aria-label="発音・通常" @click="speakEn(d.word)">🔊</button>
+                  <button type="button" class="btn-pronounce btn-pronounce-slow" title="発音（ゆっくり）" aria-label="発音・ゆっくり" @click="speakEn(d.word, 0.52)">🐢</button>
+                </span>
                 <span class="deriv-meaning">{{ d.meaning }}</span>
               </li>
             </ul>
@@ -305,17 +314,21 @@ watch([groups, mode], () => {
             <div class="card-body">
               <p class="question-text">{{ currentExample.text }}</p>
               <p v-if="currentExample.jpn" class="example-jpn-inline fill-jpn fill-hint">
-                <span class="hint-label">ヒント：</span>{{ currentExample.jpn }}
+                <span class="hint-label">日本語：</span>{{ currentExample.jpn }}
               </p>
-              <div v-if="!showResult" class="fill-row">
-                <input
-                  v-model="fillInput"
-                  type="text"
-                  class="fill-input"
-                  placeholder="空欄の単語を入力"
-                  @keydown.enter="submitFill"
-                />
-                <button type="button" class="btn btn-primary" @click="submitFill">答え合わせ</button>
+              <div v-if="!showResult" class="fill-area">
+                <p class="fill-typing-hint">キーボードで入力 → Enter で答え合わせ</p>
+                <div class="fill-row">
+                  <input
+                    v-model="fillInput"
+                    type="text"
+                    class="fill-input"
+                    placeholder="ここに単語を入力"
+                    autocomplete="off"
+                    @keydown.enter="submitFill"
+                  />
+                  <button type="button" class="btn btn-primary" @click="submitFill">答え合わせ</button>
+                </div>
               </div>
               <div v-else class="fill-result">
                 <p class="result-text" :class="userCorrect ? 'correct' : 'wrong'">
@@ -323,14 +336,10 @@ watch([groups, mode], () => {
                 </p>
                 <p class="filled-sentence">{{ fullSentence(currentExample) }}</p>
                 <p v-if="currentExample.jpn" class="example-jpn-inline fill-jpn">{{ currentExample.jpn }}</p>
-                <button
-                  type="button"
-                  class="btn-listen-sentence"
-                  title="全文を聴く"
-                  @click="speakEn(fullSentence(currentExample))"
-                >
-                  🔊 全文を聴く
-                </button>
+                <span v-if="speechEnabled" class="speak-buttons speak-buttons-sentence">
+                  <button type="button" class="btn-pronounce" title="全文を聴く（通常）" aria-label="全文・通常" @click="speakEn(fullSentence(currentExample))">🔊</button>
+                  <button type="button" class="btn-pronounce btn-pronounce-slow" title="全文を聴く（ゆっくり）" aria-label="全文・ゆっくり" @click="speakEn(fullSentence(currentExample), 0.52)">🐢</button>
+                </span>
               </div>
             </div>
           </template>
@@ -348,7 +357,10 @@ watch([groups, mode], () => {
             <ul v-if="hasDerivatives" class="derivatives-list">
               <li v-for="(d, i) in current.derivatives" :key="i" class="derivatives-item">
                 <span class="deriv-word">{{ d.word }}</span>
-                <button type="button" class="btn-pronounce" title="発音" @click="speakEn(d.word)">🔊</button>
+                <span v-if="speechEnabled" class="speak-buttons">
+                  <button type="button" class="btn-pronounce" title="発音（通常）" aria-label="発音・通常" @click="speakEn(d.word)">🔊</button>
+                  <button type="button" class="btn-pronounce btn-pronounce-slow" title="発音（ゆっくり）" aria-label="発音・ゆっくり" @click="speakEn(d.word, 0.52)">🐢</button>
+                </span>
                 <span class="deriv-meaning">{{ d.meaning }}</span>
               </li>
             </ul>
@@ -399,7 +411,10 @@ watch([groups, mode], () => {
             <ul v-if="hasDerivatives" class="derivatives-list">
               <li v-for="(d, i) in current.derivatives" :key="i" class="derivatives-item">
                 <span class="deriv-word">{{ d.word }}</span>
-                <button type="button" class="btn-pronounce" title="発音" @click="speakEn(d.word)">🔊</button>
+                <span v-if="speechEnabled" class="speak-buttons">
+                  <button type="button" class="btn-pronounce" title="発音（通常）" aria-label="発音・通常" @click="speakEn(d.word)">🔊</button>
+                  <button type="button" class="btn-pronounce btn-pronounce-slow" title="発音（ゆっくり）" aria-label="発音・ゆっくり" @click="speakEn(d.word, 0.52)">🐢</button>
+                </span>
                 <span class="deriv-meaning">{{ d.meaning }}</span>
               </li>
             </ul>
@@ -732,6 +747,12 @@ watch([groups, mode], () => {
   font-weight: 500;
   color: var(--text-primary);
 }
+.fill-area { margin-top: 0.75rem; }
+.fill-typing-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
 .fill-row {
   display: flex;
   gap: 0.75rem;
@@ -741,16 +762,21 @@ watch([groups, mode], () => {
 .fill-input {
   flex: 1;
   min-width: 200px;
-  padding: 0.6rem 0.75rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-subtle);
-  font-size: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 2px solid #94a3b8;
+  background: #fff;
+  font-size: 1.05rem;
   color: var(--text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.fill-input::placeholder {
+  color: #94a3b8;
 }
 .fill-input:focus {
   outline: none;
   border-color: var(--hirono-blue);
-  box-shadow: 0 0 0 2px var(--hirono-blue-dim);
+  box-shadow: 0 0 0 3px var(--hirono-blue-dim);
 }
 .ox-buttons {
   display: flex;
@@ -882,6 +908,15 @@ watch([groups, mode], () => {
 .derivatives-item:last-child { border-bottom: none; }
 .deriv-word { font-weight: 600; color: var(--text-primary); }
 .deriv-meaning { font-size: 0.9rem; color: var(--text-muted); }
+.speak-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  vertical-align: middle;
+}
+.speak-buttons-sentence { margin-top: 0.5rem; display: inline-flex; }
+.todays-code .speak-buttons { margin-left: 0.25rem; }
+.derivatives-item .speak-buttons { margin-left: 0.35rem; }
 .btn-pronounce {
   padding: 0.2rem 0.4rem;
   font-size: 0.9rem;
@@ -889,12 +924,12 @@ watch([groups, mode], () => {
   border-radius: 6px;
   background: transparent;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, opacity 0.2s;
   vertical-align: middle;
 }
 .btn-pronounce:hover { background: var(--hirono-blue-dim); }
-.todays-code .btn-pronounce { margin-left: 0.25rem; }
-.derivatives-item .btn-pronounce { margin-left: 0.35rem; }
+.btn-pronounce-slow { font-size: 0.85rem; opacity: 0.9; }
+.btn-pronounce-slow:hover { opacity: 1; }
 .example-block {
   padding: 1.25rem;
   border-top: 1px solid var(--border-subtle);

@@ -47,7 +47,10 @@ function setIdentity (value: Identity) {
             <img src="/about/hero.png" alt="プログラミングと英語" class="about-img" width="640" height="360" loading="lazy" />
           </div>
           <p class="about-text">
-            日本語ネイティブの君は、世界でいちばん難しい言語をあやつってる。それだけでもすごいよね。
+            日本語ネイティブの君は、<a href="https://2009-2017.state.gov/m/fsi/sls/orgoverview/languages" target="_blank" rel="noopener noreferrer" class="about-inline-link">世界でいちばん難しい言語</a>をあやつってる。それだけでもすごいよね。
+          </p>
+          <p class="about-text about-ref-row">
+            <a href="https://2009-2017.state.gov/m/fsi/sls/orgoverview/languages" target="_blank" rel="noopener noreferrer" class="btn-about-ref">参考：FSI 言語一覧（外部）</a>
           </p>
           <p class="about-text">
             英語はちょっと…って思ってるけど、プログラミングは好き。そんな子、めちゃくちゃ多いと思う。
@@ -102,7 +105,10 @@ function setIdentity (value: Identity) {
             <img src="/about/hero-adult.png" alt="社会人とプログラミング・英語" class="about-img" width="640" height="360" loading="lazy" />
           </div>
           <p class="about-text">
-            日本語ネイティブの方は、世界でいちばん難しいと言われる日本語を操っている、とても頭のよい方です。
+            日本語ネイティブの方は、<a href="https://2009-2017.state.gov/m/fsi/sls/orgoverview/languages" target="_blank" rel="noopener noreferrer" class="about-inline-link">世界でいちばん難しいと言われる言語</a>である日本語を操っている、とても頭のよい方です。
+          </p>
+          <p class="about-text about-ref-row">
+            <a href="https://2009-2017.state.gov/m/fsi/sls/orgoverview/languages" target="_blank" rel="noopener noreferrer" class="btn-about-ref">参考：FSI 言語一覧（外部）</a>
           </p>
           <p class="about-text">
             これまで英語を体系的に学ぶのを避けてきたけれど、やはり必要だと感じている。そんな方も多いのではないでしょうか。仕事でコードには触れるし、プログラミングの世界は好き。ただ、英語は腰を据えて勉強してこなかった、という方へ。
@@ -241,6 +247,29 @@ function setIdentity (value: Identity) {
 }
 .about-text:last-child { margin-bottom: 0; }
 .about-text strong { color: var(--hirono-blue); }
+.about-inline-link {
+  color: var(--hirono-blue);
+  text-decoration: underline;
+  font-weight: 600;
+}
+.about-inline-link:hover { color: var(--hirono-blue-light); }
+.about-ref-row { margin-top: 0.5rem; margin-bottom: 1rem; }
+.btn-about-ref {
+  display: inline-block;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: var(--bg-card);
+  color: var(--hirono-blue);
+  border: 1px solid var(--hirono-blue-light);
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.btn-about-ref:hover {
+  background: var(--hirono-blue-dim);
+  border-color: var(--hirono-blue);
+}
 
 .about-insight {
   padding: 0.75rem 1rem;

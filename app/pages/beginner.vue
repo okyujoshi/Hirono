@@ -177,11 +177,11 @@ onMounted(() => fetchLessons())
             <p class="deriv-line">
               <span class="deriv-word">{{ step.derivative.word }}</span>
               <span v-if="speechEnabled" class="speak-buttons">
-                <button type="button" class="btn-speak" title="発音（普通）" @click="speakEn(step.derivative.word)">
+                <button type="button" class="btn-speak" title="発音（通常）" aria-label="発音・通常" @click="speakEn(step.derivative.word)">
                   🔊
                 </button>
-                <button type="button" class="btn-speak btn-speak-slow" title="発音（ゆっくり）" @click="speakEn(step.derivative.word, 0.52)">
-                  🔊 ゆっくり
+                <button type="button" class="btn-speak btn-speak-slow" title="発音（ゆっくり）" aria-label="発音・ゆっくり" @click="speakEn(step.derivative.word, 0.52)">
+                  🐢
                 </button>
               </span>
               <span class="deriv-meaning">＝ {{ step.derivative.meaning }}</span>
@@ -204,11 +204,11 @@ onMounted(() => fetchLessons())
             <div v-for="(ex, ei) in step.examples" :key="ei" class="example-block">
               <p class="example-en">
                 <span v-if="speechEnabled" class="speak-buttons-inline">
-                  <button type="button" class="btn-speak-inline" title="読み上げ（普通）" @click="speakEn(fullSentence(ex))">
+                  <button type="button" class="btn-speak-inline" title="読み上げ（通常）" aria-label="読み上げ・通常" @click="speakEn(fullSentence(ex))">
                     🔊
                   </button>
-                  <button type="button" class="btn-speak-inline btn-speak-slow" title="読み上げ（ゆっくり）" @click="speakEn(fullSentence(ex), 0.52)">
-                    🔊 ゆっくり
+                  <button type="button" class="btn-speak-inline btn-speak-slow" title="読み上げ（ゆっくり）" aria-label="読み上げ・ゆっくり" @click="speakEn(fullSentence(ex), 0.52)">
+                    🐢
                   </button>
                 </span>
                 {{ ex.text }}
@@ -231,11 +231,11 @@ onMounted(() => fetchLessons())
           <h3 class="section-title">参考例文</h3>
           <p v-if="currentLesson.example_sentence_en" class="example-en">
             <span v-if="speechEnabled" class="speak-buttons-inline">
-              <button type="button" class="btn-speak-inline" title="読み上げ（普通）" @click="speakEn(currentLesson.example_sentence_en!)">
+              <button type="button" class="btn-speak-inline" title="読み上げ（通常）" aria-label="読み上げ・通常" @click="speakEn(currentLesson.example_sentence_en!)">
                 🔊
               </button>
-              <button type="button" class="btn-speak-inline btn-speak-slow" title="読み上げ（ゆっくり）" @click="speakEn(currentLesson.example_sentence_en!, 0.52)">
-                🔊 ゆっくり
+              <button type="button" class="btn-speak-inline btn-speak-slow" title="読み上げ（ゆっくり）" aria-label="読み上げ・ゆっくり" @click="speakEn(currentLesson.example_sentence_en!, 0.52)">
+                🐢
               </button>
             </span>
             {{ currentLesson.example_sentence_en }}
