@@ -22,6 +22,8 @@ const showOxQuiz = false
 const mode = ref<'fill' | 'ox' | 'review' | null>(null)
 const current = ref<WordGroup | null>(null)
 const todaysWord = ref<WordGroup | null>(null)
+/** 今日の単語として表示中の語源のインデックス（一覧で選択用） */
+const currentWordIndex = ref(0)
 const currentExample = ref<ExampleItem | null>(null)
 const fillInput = ref('')
 const showResult = ref(false)
@@ -156,7 +158,21 @@ onMounted(() => {
 
 function pickTodaysWord () {
   const list = [...groups.value]
-  todaysWord.value = pickRandom(list) ?? null
+  const picked = pickRandom(list)
+  todaysWord.value = picked ?? null
+  if (picked) {
+    const idx = groups.value.findIndex(g => g.id === picked.id)
+    currentWordIndex.value = idx >= 0 ? idx : 0
+  }
+  revealedBlanks.value = {}
+  todaysFeedback.value = null
+}
+
+function goToWord (index: number) {
+  const g = groups.value[index]
+  if (!g) return
+  todaysWord.value = g
+  currentWordIndex.value = index
   revealedBlanks.value = {}
   todaysFeedback.value = null
 }
@@ -184,7 +200,12 @@ function isBlankPart (part: string): boolean {
 }
 
 watch(groups, (g) => {
-  if (g?.length && !todaysWord.value) pickTodaysWord()
+  if (g?.length && !todaysWord.value) {
+    pickTodaysWord()
+  } else if (g?.length && todaysWord.value) {
+    const idx = g.findIndex(w => w.id === todaysWord.value!.id)
+    currentWordIndex.value = idx >= 0 ? idx : 0
+  }
 }, { immediate: true })
 
 watch([groups, mode], () => {
@@ -217,6 +238,21 @@ watch([groups, mode], () => {
 
       <!-- メニュー: 今日の単語（トップ）＋ クイズ選択 -->
       <template v-else-if="!mode">
+        <!-- 単語一覧（ジャンプ用） -->
+        <nav class="word-nav">
+          <span class="word-nav-label">単語：</span>
+          <button
+            v-for="(g, i) in groups"
+            :key="g.id"
+            type="button"
+            class="word-nav-btn"
+            :class="{ active: i === currentWordIndex }"
+            @click="goToWord(i)"
+          >
+            {{ g.root_word }}
+          </button>
+        </nav>
+
         <!-- 今日の単語：今日のcode / meaning / 覚えよう / 例文（ホバーで答え＋読み上げ） -->
         <section class="card todays-card">
           <h2 class="todays-heading">今日の単語 <span class="todays-badge">（ランダムに1件表示）</span></h2>
@@ -467,6 +503,36 @@ watch([groups, mode], () => {
   cursor: pointer;
 }
 .btn-back:hover { text-decoration: underline; }
+
+.word-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+.word-nav-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+.word-nav-btn {
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+.word-nav-btn:hover { border-color: var(--hirono-blue); color: var(--hirono-blue); }
+.word-nav-btn.active {
+  background: var(--hirono-blue);
+  border-color: var(--hirono-blue);
+  color: #fff;
+}
 
 .todays-card {
   margin-bottom: 1.5rem;
