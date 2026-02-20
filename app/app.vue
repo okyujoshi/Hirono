@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { Analytics } from '@vercel/analytics/nuxt'
-
 const user = useSupabaseUser()
 const supabase = useSupabaseClient()
 const { public: config } = useRuntimeConfig()
@@ -56,7 +54,6 @@ provide('openAuth', openAuth)
 
 <template>
   <div class="layout">
-    <Analytics />
     <header class="site-header">
       <div class="header-inner">
         <NuxtLink to="/" class="logo">
