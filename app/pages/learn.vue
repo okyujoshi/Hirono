@@ -10,6 +10,7 @@ type WordGroup = {
   example_sentence_en: string | null
   example_sentence_jpn: string | null
   relevent: boolean
+  hidden?: boolean
 }
 
 const supabase = useSupabaseClient()
@@ -56,7 +57,8 @@ async function fetchGroups () {
       error.value = e.message
       return
     }
-    groups.value = (data ?? []).map((row: Record<string, unknown>) => ({
+    const rows = (data ?? []).filter((row: Record<string, unknown>) => row.hidden !== true)
+    groups.value = rows.map((row: Record<string, unknown>) => ({
       id: row.id as number,
       root_word: String(row.root_word ?? ''),
       root_meaning: String(row.root_meaning ?? ''),

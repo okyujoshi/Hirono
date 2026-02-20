@@ -11,6 +11,7 @@ type WordGroup = {
   example_sentence_en: string | null
   example_sentence_jpn: string | null
   relevent: boolean
+  hidden: boolean
 }
 
 const user = useSupabaseUser()
@@ -47,7 +48,8 @@ const form = ref({
   examplesRows: [] as { text: string, answer: string, jpn: string }[],
   example_sentence_en: '',
   example_sentence_jpn: '',
-  relevent: true
+  relevent: true,
+  hidden: false
 })
 
 async function fetchGroups () {
@@ -71,7 +73,8 @@ async function fetchGroups () {
       examples: Array.isArray(row.examples) ? row.examples as ExampleItem[] : [],
       example_sentence_en: row.example_sentence_en != null ? String(row.example_sentence_en) : null,
       example_sentence_jpn: row.example_sentence_jpn != null ? String(row.example_sentence_jpn) : null,
-      relevent: Boolean(row.relevent)
+      relevent: Boolean(row.relevent),
+      hidden: Boolean((row as Record<string, unknown>).hidden)
     }))
   } finally {
     loading.value = false
@@ -118,6 +121,7 @@ function saveDraft () {
       example_sentence_en: form.value.example_sentence_en,
       example_sentence_jpn: form.value.example_sentence_jpn,
       relevent: form.value.relevent,
+      hidden: form.value.hidden,
       formMode: formMode.value,
       derivativesJson: form.value.derivativesJson,
       examplesJson: form.value.examplesJson
@@ -139,6 +143,7 @@ function loadDraft () {
     form.value.example_sentence_en = data.example_sentence_en ?? ''
     form.value.example_sentence_jpn = data.example_sentence_jpn ?? ''
     form.value.relevent = data.relevent !== false
+    form.value.hidden = data.hidden === true
     if (data.formMode === 'json') {
       form.value.derivativesJson = data.derivativesJson ?? '[]'
       form.value.examplesJson = data.examplesJson ?? '[]'
@@ -168,7 +173,8 @@ function openAddForm () {
     examplesRows: padExamples([]),
     example_sentence_en: '',
     example_sentence_jpn: '',
-    relevent: true
+    relevent: true,
+    hidden: false
   }
   formError.value = ''
   try {
@@ -194,7 +200,8 @@ function openEditForm (row: WordGroup) {
     examplesRows: padExamples(examples),
     example_sentence_en: row.example_sentence_en ?? '',
     example_sentence_jpn: row.example_sentence_jpn ?? '',
-    relevent: row.relevent
+    relevent: row.relevent,
+    hidden: row.hidden
   }
   formError.value = ''
   formOpen.value = true
@@ -274,7 +281,8 @@ async function submitForm () {
       examples,
       example_sentence_en: form.value.example_sentence_en.trim() || null,
       example_sentence_jpn: form.value.example_sentence_jpn.trim() || null,
-      relevent: form.value.relevent
+      relevent: form.value.relevent,
+      hidden: form.value.hidden
     }
     if (!payload.root_word || !payload.root_meaning) {
       formError.value = '語源（root_word）と意味（root_meaning）は必須です。'
@@ -317,6 +325,21 @@ async function deleteRow (row: WordGroup) {
     return
   }
   message.value = '削除しました。'
+  await fetchGroups()
+  setTimeout(() => { message.value = '' }, 3000)
+}
+
+async function toggleHidden (row: WordGroup) {
+  const next = !row.hidden
+  const { error: e } = await supabase
+    .from('word_groups')
+    .update({ hidden: next })
+    .eq('id', row.id)
+  if (e) {
+    message.value = `更新に失敗しました: ${e.message}`
+    return
+  }
+  message.value = next ? '非表示にしました。' : '表示にしました。'
   await fetchGroups()
   setTimeout(() => { message.value = '' }, 3000)
 }
@@ -365,17 +388,23 @@ watch(isAdmin, (ok) => {
               <th>派生語数</th>
               <th>例文数</th>
               <th>relevent</th>
+              <th>表示</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="g in groups" :key="g.id">
+            <tr v-for="g in groups" :key="g.id" :class="{ 'row-hidden': g.hidden }">
               <td>{{ g.id }}</td>
               <td>{{ g.root_word }}</td>
               <td class="cell-meaning">{{ g.root_meaning }}</td>
               <td>{{ g.derivatives?.length ?? 0 }}</td>
               <td>{{ g.examples?.length ?? 0 }}</td>
               <td>{{ g.relevent ? '○' : '×' }}</td>
+              <td>
+                <span v-if="g.hidden" class="badge badge-hidden">非表示</span>
+                <button v-else type="button" class="btn-admin btn-hide btn-sm" @click="toggleHidden(g)">非表示</button>
+                <button v-if="g.hidden" type="button" class="btn-admin btn-show btn-sm" @click="toggleHidden(g)">表示</button>
+              </td>
               <td>
                 <button type="button" class="btn-admin btn-edit" @click="openEditForm(g)">編集</button>
                 <button type="button" class="btn-admin btn-delete" @click="deleteRow(g)">削除</button>
@@ -490,6 +519,10 @@ watch(isAdmin, (ok) => {
                 <input v-model="form.relevent" type="checkbox" />
                 <span>relevent（○×クイズで仲間）</span>
               </label>
+              <label class="admin-check">
+                <input v-model="form.hidden" type="checkbox" />
+                <span>非表示（学習・初心者ページに表示しない）</span>
+              </label>
               <div class="admin-form-actions">
                 <button type="button" class="btn-admin btn-outline" @click="closeForm">キャンセル</button>
                 <button type="submit" class="btn-admin btn-primary" :disabled="formLoading">
@@ -564,7 +597,13 @@ watch(isAdmin, (ok) => {
 .btn-add { background: var(--hirono-blue); color: #fff; }
 .btn-edit { background: #0ea5e9; color: #fff; margin-right: 0.5rem; }
 .btn-delete { background: #ef4444; color: #fff; }
+.btn-hide { background: #f59e0b; color: #fff; margin-right: 0.25rem; }
+.btn-show { background: var(--hirono-green); color: #fff; }
+.btn-sm { padding: 0.35rem 0.65rem; font-size: 0.85rem; }
 .btn-outline { background: transparent; color: var(--text-muted); border: 1px solid var(--border-subtle); }
+.badge { font-size: 0.8rem; padding: 0.2rem 0.5rem; border-radius: 6px; }
+.badge-hidden { background: #fef3c7; color: #92400e; }
+.row-hidden { background: #fefce8; }
 .btn-primary { background: var(--hirono-blue); color: #fff; }
 .admin-loading { color: var(--text-muted); padding: 1rem 0; }
 .admin-table-wrap { overflow-x: auto; }
