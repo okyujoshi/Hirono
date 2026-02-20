@@ -175,6 +175,7 @@ function goToWord (index: number) {
   currentWordIndex.value = index
   revealedBlanks.value = {}
   todaysFeedback.value = null
+  mode.value = null
 }
 
 function fullSentence (item: ExampleItem) {
@@ -236,9 +237,8 @@ watch([groups, mode], () => {
         データがありません。Supabase の word_groups にレコードを追加してください。
       </div>
 
-      <!-- メニュー: 今日の単語（トップ）＋ クイズ選択 -->
-      <template v-else-if="!mode">
-        <!-- 単語一覧（ジャンプ用） -->
+      <template v-else>
+        <!-- 単語一覧（ジャンプ用・常に表示） -->
         <nav class="word-nav">
           <span class="word-nav-label">単語：</span>
           <button
@@ -253,6 +253,8 @@ watch([groups, mode], () => {
           </button>
         </nav>
 
+        <!-- メニュー: 今日の単語（トップ）＋ クイズ選択 -->
+        <template v-if="!mode">
         <!-- 今日の単語：今日のcode / meaning / 覚えよう / 例文（ホバーで答え＋読み上げ） -->
         <section class="card todays-card">
           <h2 class="todays-heading">今日の単語 <span class="todays-badge">（ランダムに1件表示）</span></h2>
@@ -468,6 +470,7 @@ watch([groups, mode], () => {
             <button type="button" class="btn btn-menu" @click="goToMenu">メニューに戻る</button>
           </div>
         </template>
+      </template>
       </template>
     </main>
   </div>
